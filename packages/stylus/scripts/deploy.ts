@@ -52,6 +52,36 @@ export default async function deployScript(deployOptions: DeployOptions) {
   //   ...deployOptions,
   // });
 
+  // Array of token names
+  const TOKEN_NAMES = [
+    "WETH", "USDC", "ARB", "WBTC", "DAI", 
+    "LINK", "UNI", "MATIC", "AAVE", "CRV"
+  ];
+
+  // Deploy function for multiple tokens
+  const deployTokens = async (tokenNames: string[]) => {
+    console.log(`📦 Deploying ${tokenNames.length} mock tokens...`);
+    
+    for (const tokenName of tokenNames) {
+      console.log(`   Deploying ${tokenName}...`);
+      await deployStylusContract({
+        contract: "mock-token",
+        constructorArgs: [],
+        name: tokenName,
+      });
+    }
+  };
+
+  // Deploy all tokens
+  await deployTokens(TOKEN_NAMES);
+
+  // Deploy portfolio reader
+  await deployStylusContract({
+    contract: "portfolio-reader",
+    constructorArgs: [],
+    name: "PortfolioReader",
+  });
+
   // Print the deployed addresses
   console.log("\n\n");
   printDeployedAddresses(config.deploymentDir, config.chain.id.toString());
