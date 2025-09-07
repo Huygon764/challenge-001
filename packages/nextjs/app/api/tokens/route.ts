@@ -1,8 +1,6 @@
-import fs from "fs";
-import path from "path";
 import { NextResponse } from "next/server";
-import { CHAIN_ID } from "~~/constants/chain";
 import { Token } from "~~/types/token/token";
+import contracts from "~~/contracts/deployedContracts";
 
 const TOKEN_METADATA = {
   WETH: { name: "Wrapped ETH", decimals: 18 },
@@ -19,19 +17,16 @@ const TOKEN_METADATA = {
 
 export async function GET() {
   try {
-    const deploymentPath = path.join(process.cwd(), "..", "stylus", "deployments", `${CHAIN_ID}_latest.json`);
+    const chainContracts = contracts["412346"];
 
-    if (!fs.existsSync(deploymentPath)) {
-      return NextResponse.json({ error: "Deployment file not found" }, { status: 404 });
+    if (!chainContracts) {
+      return NextResponse.json({ error: "No contracts found for this chain" }, { status: 404 });
     }
 
-    const deploymentData = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
-
-    // Generate tokens
-    const tokens: Token[] = Object.entries(deploymentData)
+    const tokens: Token[] = Object.entries(chainContracts)
       .filter(([name]) => name in TOKEN_METADATA)
-      .map(([symbol, data]: [string, any]) => ({
-        address: data.address,
+      .map(([symbol, contract]) => ({
+        address: contract.address,
         symbol,
         name: TOKEN_METADATA[symbol as keyof typeof TOKEN_METADATA].name,
         decimals: TOKEN_METADATA[symbol as keyof typeof TOKEN_METADATA].decimals,
@@ -39,8 +34,8 @@ export async function GET() {
 
     // Contract addresses
     const contractAddresses = {
-      PORTFOLIO_READER: deploymentData.PortfolioReader?.address,
-      YOUR_CONTRACT: deploymentData["your-contract"]?.address,
+      PORTFOLIO_READER: chainContracts.PortfolioReader?.address,
+      YOUR_CONTRACT: chainContracts["your-contract"]?.address,
     };
 
     return NextResponse.json({
@@ -49,7 +44,7 @@ export async function GET() {
       lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error reading deployment file:", error);
-    return NextResponse.json({ error: "Failed to load deployment data" }, { status: 500 });
+    console.error("Error loading contracts:", error);
+    return NextResponse.json({ error: "Failed to load contract data" }, { status: 500 });
   }
 }
